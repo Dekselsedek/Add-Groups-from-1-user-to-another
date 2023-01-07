@@ -1,0 +1,26 @@
+#Connect to tenant
+Connect-AzAccount
+
+#Get all users's UPN and OnjectID
+$users = Get-AzureADUser | Select-Object UserPrincipalName, ObjectID
+
+# Choose the example user
+$userA = $users | Out-GridView -Title "Select Example User" -PassThru
+
+# Choose Target user
+$userB = $users | Out-GridView -Title "Select Target User" -PassThru
+ 
+# List of all groups of Example user
+$groups = Get-AzureADUserMembership -ObjectID $userA.ObjectId | Where-Object ObjectType -EQ group
+
+# Add Target user to groups from example user
+foreach ($group in $groups) {
+    try{
+        Add-AzureADGroupMember -ObjectID $group.ObjectId -RefObjectId $userB.ObjectId -ErrorAction SilentlyContinue
+    }
+    catch{
+        if($_.exception.message -like "*references already exist*"){
+            Write-Host "$($group.DisplayName) Has already been added to $($userB.UserPrincipalName)"
+        }
+    }
+}
